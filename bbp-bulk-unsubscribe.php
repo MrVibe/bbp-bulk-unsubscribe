@@ -15,8 +15,8 @@ if ( !defined( 'ABSPATH' ) ) exit;
 include_once 'includes/init.php';
 include_once 'includes/tools.php';
 
-add_action('plugins_loaded','wplms_bbpbu_translations');
-function wplms_bbpbu_translations(){
+add_action('plugins_loaded','bbpbu_translations');
+function bbpbu_translations(){
     $locale = apply_filters("plugin_locale", get_locale(), 'bbpbu');
     $lang_dir = dirname( __FILE__ ) . '/languages/';
     $mofile        = sprintf( '%1$s-%2$s.mo', 'bbpbu', $locale );
