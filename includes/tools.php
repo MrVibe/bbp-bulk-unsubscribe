@@ -88,9 +88,8 @@ class BBP_Bulk_Unsubscribe_Tools{
     function persistent_admin_scripts($hook){
 
         if(in_array($hook,array('tools_page_bbp-bulk-unsubscribe'))){
-
-            wp_enqueue_style( 'select2', VIBE_PLUGIN_URL .'/vibe-customtypes/metaboxes/css/select2.min.css');
-            wp_enqueue_script( 'select2', VIBE_PLUGIN_URL .'/vibe-customtypes/metaboxes/js/select2.min.js');
+            wp_enqueue_style( 'select2',plugins_url('../assets/select2.min.css',__FILE__));
+            wp_enqueue_script( 'select2', plugins_url('../assets//select2.min.js',__FILE__));
         }
 
     }
