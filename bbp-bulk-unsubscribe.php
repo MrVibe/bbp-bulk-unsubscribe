@@ -3,7 +3,7 @@
 Plugin Name: BBPress Bulk Unsubscribe
 Plugin URI: http://www.vibethemes.com/
 Description: This plugin creates extends WooCommerce for WPMS
-Version: 1.0
+Version: 1.0 
 Author: VibeThemes
 Author URI: http://www.vibethemes.com/
 Text Domain: bbpbu
