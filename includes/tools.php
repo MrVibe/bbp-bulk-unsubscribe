@@ -30,6 +30,8 @@ class BBP_Bulk_Unsubscribe_Tools{
 
 		add_filter('bbp_admin_get_settings_fields',array($this,'enable_user_to_unsubscribe_from_all'));
 		add_filter('bbp_get_default_options',array($this,'add_unsubscribe_option'));
+
+        add_action('wp_ajax_unsubscribe_all_users',array($this,'unsubscribe_all_users'));
     }
 
     function add_unsubscribe_option($ops){
@@ -97,6 +99,62 @@ class BBP_Bulk_Unsubscribe_Tools{
     		</div>
     	</div>
     	<?php
+
+        $this->unsubscribe_users_from_forums_topics();
+    }
+
+    function unsubscribe_users_from_forums_topics(){
+        ?>
+        <script>
+            jQuery(document).ready(function($){
+
+                $('#unsubscribe_all_users').on('click',function(){
+
+                    $.ajax({
+                        type: "POST",
+                        dataType: 'json',
+                        url: ajaxurl,
+                        data: {
+                            action:'unsubscribe_all_users',
+                        },
+                        cache: false,
+                        success: function (html) {
+                            window.location.reload();
+                        }
+                    });
+
+                });
+
+                $('#unsubscribe_forums_topics').on('click',function(){
+
+                });
+
+                $('#unsubscribe_user').on('click',function(){
+
+                });
+
+            });
+        </script>
+        <?php
+    }
+
+    function unsubscribe_all_users(){
+
+        global $wpdb;
+        $option_name = '_bbp_forum_subscriptions';
+        $option_name = $wpdb->get_blog_prefix() . $option_name;
+        $users = $wpdb->get_results("SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = $option_name");
+
+        if(empty($users)){
+            die();
+        }
+
+        foreach ($users as $user){
+            delete_user_meta( $user->user_id, $option_name );
+        }
+
+        die();
+
     }
 }
 
