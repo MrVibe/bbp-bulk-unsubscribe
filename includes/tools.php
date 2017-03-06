@@ -110,7 +110,7 @@ class BBP_Bulk_Unsubscribe_Tools{
     		<div class="card">
     			<h2><?php _ex('Unsubscribe all Users from Selected Forums & Topics','','bbpbu'); ?></h2>
     			<p><?php _ex('Unsubscribe all users from selected forums and topics','','bbpbu'); ?></p>
-                <select name="serch_forums_topics[]" id="serch_forums_topics" class="select" data-placeholder="<?php echo __('Select multiple forums','bbpbu'); ?>" style="width:100%;margin-bottom:20px;" multiple>
+                <select name="search_forums_topics[]" id="search_forums_topics" class="select" data-placeholder="<?php echo __('Select multiple forums','bbpbu'); ?>" style="width:100%;margin-bottom:20px;" multiple>
                 </select><br />
     			<a id="unsubscribe_forums_topics" class="button-primary"><?php _ex('Unsubscribe all users from selected Forums & Topics','','bbpbu'); ?></a>
     		</div>
@@ -121,6 +121,8 @@ class BBP_Bulk_Unsubscribe_Tools{
                 </select><br />
     			<a id="unsubscribe_user" class="button-primary"><?php _ex('Unsubscribe selected users from all Forums & Topics','','bbpbu'); ?></a>
     		</div>
+
+            <?php wp_nonce_field('hkl_security','security'); ?>
 
     	</div>
     	<?php
@@ -148,14 +150,13 @@ class BBP_Bulk_Unsubscribe_Tools{
                         url: ajaxurl,
                         data: {
                             action:'unsubscribe_all_users',
+                            security: $('#security').val(),
                         },
                         cache: false,
-                        success: function (html) {
+                        success: function (json) {
                             var deftxt = $this.text();
-                            $this.text(html);
-                            setTimeout(function(){ $this.text(deftxt);},2000);
-                            $this.removeClass('disabled');
-                            return;
+                            $this.text(json.success_message);
+                            setTimeout(function(){ $this.text(deftxt); $this.removeClass('disabled');},2000);
                         }
                     });
 
@@ -178,6 +179,7 @@ class BBP_Bulk_Unsubscribe_Tools{
                             data: function(term){ 
                                     return  {   
                                         action: 'get_users_forums_topics',
+                                        security: $('#security').val(),
                                         id:$this.attr('id'),
                                         q: term,
                                     }
@@ -206,11 +208,7 @@ class BBP_Bulk_Unsubscribe_Tools{
                     }
 
                     $this.addClass('disabled');
-
-                    var forum_topic_ids = [];
-                    $('.card').each(function(){
-                        forum_topic_ids = $(this).find('#serch_forums_topics.select').val();
-                    });
+                    forum_topic_ids = $('#search_forums_topics.select').val();
 
                     $.ajax({
                         type: "POST",
@@ -218,15 +216,14 @@ class BBP_Bulk_Unsubscribe_Tools{
                         url: ajaxurl,
                         data: {
                             action:'unsubscribe_forums_topics',
+                            security: $('#security').val(),
                             id: forum_topic_ids,
                         },
                         cache: false,
-                        success: function (html) {
+                        success: function (json) {
                             var deftxt = $this.text();
-                            $this.text(html);
-                            setTimeout(function(){ $this.text(deftxt);},2000);
-                            $this.removeClass('disabled');
-                            return;
+                            $this.text(json.success_message);
+                            setTimeout(function(){ $this.text(deftxt); $this.removeClass('disabled');},2000);
                         }
                     });
 
@@ -240,11 +237,7 @@ class BBP_Bulk_Unsubscribe_Tools{
                     }
 
                     $this.addClass('disabled');
-
-                    var user_ids = [];
-                    $('.card').each(function(){
-                        user_ids = $(this).find('#search_users.select').val();
-                    });
+                    user_ids = $('#search_users.select').val();
 
                     $.ajax({
                         type: "POST",
@@ -252,15 +245,14 @@ class BBP_Bulk_Unsubscribe_Tools{
                         url: ajaxurl,
                         data: {
                             action:'unsubscribe_user',
+                            security: $('#security').val(),
                             id: user_ids,
                         },
                         cache: false,
-                        success: function (html) {
+                        success: function (json) {
                             var deftxt = $this.text();
-                            $this.text(html);
-                            setTimeout(function(){ $this.text(deftxt);},2000);
-                            $this.removeClass('disabled');
-                            return;
+                            $this.text(json.success_message);
+                            setTimeout(function(){ $this.text(deftxt); $this.removeClass('disabled');},2000);
                         }
                     });
 
@@ -273,6 +265,14 @@ class BBP_Bulk_Unsubscribe_Tools{
 
     function unsubscribe_all_users(){
 
+        //Check security
+        if ( !isset($_POST['security']) || !wp_verify_nonce($_POST['security'],'hkl_security') || !is_user_logged_in()){
+
+            _e('Security check Failed. Contact Administrator.','wplms-am');
+            die();
+        }
+
+        //Get options
         global $wpdb;
         $prefix = $wpdb->get_blog_prefix();
         $forum_option_name = '_bbp_forum_subscriptions';
@@ -285,12 +285,18 @@ class BBP_Bulk_Unsubscribe_Tools{
             die();
         }
 
+        //Unsubscribe all users from all topics and forums
         foreach ($users as $user){
             delete_user_meta( $user->user_id, $forum_option );
             delete_user_meta( $user->user_id, $topic_option );
         }
 
-        echo __('All users unsubscribed from all Forums and Topics','bbpbu');
+        // Create json
+        $json_array = array(
+            'success_message'=> __('All users unsubscribed from all Forums and Topics','bbpbu')
+             );
+        //Send json
+        print_r(json_encode($json_array));
 
         die();
 
@@ -298,11 +304,13 @@ class BBP_Bulk_Unsubscribe_Tools{
 
     function get_users_forums_topics(){
 
-        if (!current_user_can('edit_posts') || !isset($_POST['id']) ){
+        if (!current_user_can('edit_posts') || !isset($_POST['id']) || !isset($_POST['security']) || !wp_verify_nonce($_POST['security'],'hkl_security') || !is_user_logged_in()){
+
             _e('Security check Failed. Contact Administrator.','bbpbu');
             die();
         }
 
+        //Get the IDs and the terms entered by the user
         $id = $_POST['id'];
         $q = $_POST['q'];
 
@@ -310,10 +318,12 @@ class BBP_Bulk_Unsubscribe_Tools{
         $return = array();
         $search_terms_like = '%'.$q['term'].'%';
 
-        if($id == 'serch_forums_topics'){
+        if($id == 'search_forums_topics'){
 
+            //Get forums/topics
             $forums_topics = $wpdb->get_results( $wpdb->prepare( "SELECT ID , post_title  FROM {$wpdb->posts} WHERE ( post_title LIKE %s ) AND (post_type = 'forum' OR post_type = 'topic')", $search_terms_like ) );
             
+            //Create Json for forums/topics
             if(!empty($forums_topics)){
                 foreach($forums_topics as $forum_topic){
                     $return[] = array('id'=>$forum_topic->ID,'text'=>$forum_topic->post_title);
@@ -324,8 +334,10 @@ class BBP_Bulk_Unsubscribe_Tools{
 
         if($id == 'search_users'){
 
+            //Get users
             $users = $wpdb->get_results( $wpdb->prepare( "SELECT ID , display_name  FROM {$wpdb->users} WHERE ( user_login LIKE %s OR display_name LIKE %s OR user_email LIKE %s )", $search_terms_like, $search_terms_like, $search_terms_like ) );
             
+            //Create Json for Users
             if(!empty($users)){
                 foreach($users as $user){
                     $return[] = array('id'=>$user->ID,'text'=>$user->display_name);
@@ -334,6 +346,7 @@ class BBP_Bulk_Unsubscribe_Tools{
 
         }
 
+        //Return users/forums/topics as Json data
         print_r(json_encode($return));
         die();
 
@@ -341,16 +354,20 @@ class BBP_Bulk_Unsubscribe_Tools{
 
     function unsubscribe_forums_topics(){
 
-        if ( !isset($_POST['id']) ){
+        //Check Security
+        if ( !isset($_POST['id']) || !isset($_POST['security']) || !wp_verify_nonce($_POST['security'],'hkl_security') || !is_user_logged_in()){
+
             _e('Security check Failed. Contact Administrator.','bbpbu');
             die();
         }
 
+        //Get selected forum/topic IDs
         $forum_topic_ids = $_POST['id'];
         if(empty($forum_topic_ids)){
             die();
         }
 
+        //Get Options
         global $wpdb;
         $prefix = $wpdb->get_blog_prefix();
         $forum_option_name = '_bbp_forum_subscriptions';
@@ -360,10 +377,12 @@ class BBP_Bulk_Unsubscribe_Tools{
 
         foreach ($forum_topic_ids as $forum_topic_id) {
 
+            //Get all users subscribed to the forum/topic
             $users = $wpdb->get_results("SELECT user_id,meta_value FROM {$wpdb->usermeta} WHERE (meta_key = $forum_option OR meta_key = $topic_option) AND (meta_value LIKE %,$forum_topic_id,% OR meta_value LIKE $forum_topic_id,% OR meta_value LIKE %,$forum_topic_id )");
 
             if(!empty($users)){
 
+                //Remove/unsubscribe all users from selected forums and topics
                 foreach ($users as $user){
                     delete_user_meta( $user->user_id, $forum_option );
                     delete_user_meta( $user->user_id, $topic_option );
@@ -372,7 +391,12 @@ class BBP_Bulk_Unsubscribe_Tools{
 
         }
 
-        echo __('All users unsubscribed from selected Forums and Topics','bbpbu');
+        // Create json
+        $json_array = array(
+            'success_message'=> __('All users unsubscribed from selected Forums and Topics','bbpbu')
+             );
+        //Send json
+        print_r(json_encode($json_array));
 
         die();
 
@@ -380,16 +404,20 @@ class BBP_Bulk_Unsubscribe_Tools{
 
     function unsubscribe_user(){
 
-        if ( !isset($_POST['id']) ){
+        //Check Security
+        if ( !isset($_POST['id']) || !isset($_POST['security']) || !wp_verify_nonce($_POST['security'],'hkl_security') || !is_user_logged_in()){
+
             _e('Security check Failed. Contact Administrator.','bbpbu');
             die();
         }
 
+        //Get selected User IDs
         $user_ids = $_POST['id'];
         if(empty($user_ids)){
             die();
         }
 
+        //Get Options
         global $wpdb;
         $prefix = $wpdb->get_blog_prefix();
         $forum_option_name = '_bbp_forum_subscriptions';
@@ -397,12 +425,18 @@ class BBP_Bulk_Unsubscribe_Tools{
         $forum_option = $prefix . $forum_option_name;
         $topic_option = $prefix . $topic_option_name;
 
+        //Remove/unsubscribe users from all forums and topics
         foreach ($user_ids as $user_id) {
             delete_user_meta( $user_id, $forum_option );
             delete_user_meta( $user_id, $topic_option );
         }
 
-        echo __('Selected users unsubscribed from all Forums and Topics','bbpbu');
+        // Create json
+        $json_array = array(
+            'success_message'=> __('Selected users unsubscribed from all Forums and Topics','bbpbu')
+             );
+        //Send json
+        print_r(json_encode($json_array));
 
         die();
 
