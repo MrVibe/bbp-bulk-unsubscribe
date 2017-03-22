@@ -2,7 +2,7 @@
 /*
 Plugin Name: BBPress Bulk Unsubscribe
 Plugin URI: http://www.vibethemes.com/
-Description: This plugin creates extends WooCommerce for WPMS
+Description: This plugin adds option to bulk unsubscribe users from BBPress forums and topics
 Version: 1.0 
 Author: VibeThemes
 Author URI: http://www.vibethemes.com/
